@@ -189,6 +189,13 @@ ifeq ($(shell grep -q "SEC_SELINUX_PORTING_COMMON" $(srctree)/security/selinux/a
 ccflags-y += -DSAMSUNG_SELINUX_PORTING
 endif
 
+## For Huawei EMUI10+ Cheak  
+# Scan Kernel Tree to find CONFIG_HKIP_SELINUX_PROT in ebitmap.h
+ifeq ($(shell grep -q "CONFIG_HKIP_SELINUX_PROT" $(srctree)/security/selinux/ss/ebitmap.h 2>/dev/null; echo $$?),0)
+  $(info -- $(REPO_NAME): CONFIG_HKIP_SELINUX_PROT found!)
+  ccflags-y += -DKSU_COMPAT_IS_HISI_HM2
+endif
+
 # Function proc_ops check
 ifeq ($(shell grep -q "struct proc_ops " $(srctree)/include/linux/proc_fs.h; echo $$?),0)
 ccflags-y += -DKSU_COMPAT_HAS_PROC_OPS

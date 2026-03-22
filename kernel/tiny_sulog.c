@@ -19,7 +19,7 @@ struct sulog_entry {
 } __attribute__((packed));
 
 #define SULOG_ENTRY_MAX 250
-#define SULOG_BUFSIZ SULOG_ENTRY_MAX *(sizeof(struct sulog_entry))
+#define SULOG_BUFSIZ SULOG_ENTRY_MAX * (sizeof(struct sulog_entry))
 
 static void *sulog_buf_ptr = NULL;
 static uint8_t sulog_index_next = 0;

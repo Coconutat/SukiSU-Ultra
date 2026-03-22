@@ -35,13 +35,13 @@ struct ksu_report_event_cmd {
 };
 
 struct ksu_set_sepolicy_cmd {
-    __u64 data_len; // Input: bytes of serialized command payload
-    __aligned_u64 data; // Input: pointer to serialized payload
+	__u64 data_len; // Input: bytes of serialized command payload
+	__aligned_u64 data; // Input: pointer to serialized payload
 };
 
 struct ksu_sepolicy_cmd_hdr {
-    __u32 cmd; // Input: command type, CMD_*
-    __u32 subcmd; // Input: command subtype
+	__u32 cmd; // Input: command type, CMD_*
+	__u32 subcmd; // Input: command subtype
 };
 // After each ksu_sepolicy_cmd_hdr, command arguments are encoded sequentially as:
 // [u32 len][len bytes][\0], where len excludes the trailing '\0'.
@@ -63,9 +63,9 @@ struct ksu_get_allow_list_cmd {
 };
 
 struct ksu_new_get_allow_list_cmd {
-    __u16 count; // Input / Output: number of UIDs in array
-    __u16 total_count; // Output: total number of UIDs in requested list
-    __u32 uids[0]; // Output: array of allowed/denied UIDs
+	__u16 count; // Input / Output: number of UIDs in array
+	__u16 total_count; // Output: total number of UIDs in requested list
+	__u32 uids[0]; // Output: array of allowed/denied UIDs
 };
 
 struct ksu_uid_granted_root_cmd {
@@ -166,9 +166,9 @@ struct ksu_manual_su_cmd {
 #define KSU_IOCTL_SET_SEPOLICY _IOC(_IOC_READ | _IOC_WRITE, 'K', 4, 0)
 #define KSU_IOCTL_CHECK_SAFEMODE _IOC(_IOC_READ, 'K', 5, 0)
 #define KSU_IOCTL_NEW_GET_ALLOW_LIST                                           \
-    _IOWR('K', 6, struct ksu_new_get_allow_list_cmd)
+	_IOWR('K', 6, struct ksu_new_get_allow_list_cmd)
 #define KSU_IOCTL_NEW_GET_DENY_LIST                                            \
-    _IOWR('K', 7, struct ksu_new_get_allow_list_cmd)
+	_IOWR('K', 7, struct ksu_new_get_allow_list_cmd)
 #define KSU_IOCTL_UID_GRANTED_ROOT _IOC(_IOC_READ | _IOC_WRITE, 'K', 8, 0)
 #define KSU_IOCTL_UID_SHOULD_UMOUNT _IOC(_IOC_READ | _IOC_WRITE, 'K', 9, 0)
 #define KSU_IOCTL_GET_MANAGER_APPID _IOC(_IOC_READ, 'K', 10, 0)

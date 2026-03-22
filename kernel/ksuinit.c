@@ -40,29 +40,29 @@
 // while those third-party kernel can't provide.
 // Thus, we manually provide it instead of using kernel's
 #if defined(CONFIG_STACKPROTECTOR) &&                                          \
-    (defined(CONFIG_ARM64) && defined(MODULE) &&                               \
-     !defined(CONFIG_STACKPROTECTOR_PER_TASK))
+	(defined(CONFIG_ARM64) && defined(MODULE) &&                           \
+	 !defined(CONFIG_STACKPROTECTOR_PER_TASK))
 #include <linux/stackprotector.h>
 #include <linux/random.h>
 unsigned long __stack_chk_guard __ro_after_init
-    __attribute__((visibility("hidden")));
+	__attribute__((visibility("hidden")));
 __attribute__((no_stack_protector)) void ksu_setup_stack_chk_guard()
 {
-    unsigned long canary;
+	unsigned long canary;
 
-    /* Try to get a semi random initial value. */
-    get_random_bytes(&canary, sizeof(canary));
-    canary ^= LINUX_VERSION_CODE;
-    canary &= CANARY_MASK;
-    __stack_chk_guard = canary;
+	/* Try to get a semi random initial value. */
+	get_random_bytes(&canary, sizeof(canary));
+	canary ^= LINUX_VERSION_CODE;
+	canary &= CANARY_MASK;
+	__stack_chk_guard = canary;
 }
 
 __attribute__((naked)) int __init kernelsu_init_early(void)
 {
-    asm("mov x19, x30;\n"
-        "bl ksu_setup_stack_chk_guard;\n"
-        "mov x30, x19;\n"
-        "b kernelsu_init;\n");
+	asm("mov x19, x30;\n"
+	    "bl ksu_setup_stack_chk_guard;\n"
+	    "mov x30, x19;\n"
+	    "b kernelsu_init;\n");
 }
 #define NEED_OWN_STACKPROTECTOR 1
 #else
@@ -85,9 +85,9 @@ bool ksu_late_loaded;
 int __init kernelsu_init(void)
 {
 #ifdef MODULE
-    ksu_late_loaded = (current->pid != 1);
+	ksu_late_loaded = (current->pid != 1);
 #else
-    ksu_late_loaded = false;
+	ksu_late_loaded = false;
 #endif
 
 #ifndef DDK_ENV
@@ -124,21 +124,21 @@ int __init kernelsu_init(void)
 	sukisu_custom_config_init();
 
 	if (ksu_late_loaded) {
-        pr_info("late load mode, skipping kprobe hooks\n");
+		pr_info("late load mode, skipping kprobe hooks\n");
 
-        apply_kernelsu_rules();
-        cache_sid();
-        setup_ksu_cred();
+		apply_kernelsu_rules();
+		cache_sid();
+		setup_ksu_cred();
 
 		// Grant current process (ksud late-load) root
-        // with KSU SELinux domain before enforcing SELinux, so it
-        // can continue to access /data/app etc. after enforcement.
-        escape_to_root_for_init();
+		// with KSU SELinux domain before enforcing SELinux, so it
+		// can continue to access /data/app etc. after enforcement.
+		escape_to_root_for_init();
 
 		ksu_lsm_hook_init();
 
-        ksu_allowlist_init();
-        ksu_load_allow_list();
+		ksu_allowlist_init();
+		ksu_load_allow_list();
 
 #ifdef CONFIG_KSU_SYSCALL_HOOK
 		ksu_syscall_hook_manager_init();
@@ -148,7 +148,7 @@ int __init kernelsu_init(void)
 		ksu_sucompat_init();
 #endif
 
-        ksu_throne_tracker_init();
+		ksu_throne_tracker_init();
 
 #ifdef CONFIG_KSU_SUSFS
 		susfs_init();
@@ -160,31 +160,31 @@ int __init kernelsu_init(void)
 		ksu_observer_init();
 #endif
 
-        ksu_file_wrapper_init();
+		ksu_file_wrapper_init();
 
-        ksu_boot_completed = true;
-        track_throne(false);
+		ksu_boot_completed = true;
+		track_throne(false);
 
 		if (!getenforce()) {
-            pr_info("Permissive SELinux, enforcing\n");
-            setenforce(true);
-        }
-		
-    } else {
+			pr_info("Permissive SELinux, enforcing\n");
+			setenforce(true);
+		}
+
+	} else {
 #ifdef CONFIG_KSU_SYSCALL_HOOK
-        ksu_syscall_hook_manager_init();
+		ksu_syscall_hook_manager_init();
 #endif
 
 		ksu_lsm_hook_init();
 
-        ksu_allowlist_init();
+		ksu_allowlist_init();
 
 #if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
 		ksu_setuid_hook_init();
 		ksu_sucompat_init();
 #endif
 
-        ksu_throne_tracker_init();
+		ksu_throne_tracker_init();
 
 #ifdef CONFIG_KSU_SUSFS
 		susfs_init();
@@ -194,8 +194,8 @@ int __init kernelsu_init(void)
 		ksu_ksud_init();
 #endif // #ifndef CONFIG_KSU_SUSFS
 
-        ksu_file_wrapper_init();
-    }
+		ksu_file_wrapper_init();
+	}
 
 #ifdef MODULE
 #ifndef CONFIG_KSU_DEBUG
@@ -224,7 +224,7 @@ void kernelsu_exit(void)
 #endif
 #ifndef CONFIG_KSU_SUSFS
 	if (!ksu_late_loaded)
-	ksu_ksud_exit();
+		ksu_ksud_exit();
 #endif // #ifndef CONFIG_KSU_SUSFS
 #ifdef CONFIG_KSU_SYSCALL_HOOK
 	ksu_syscall_hook_manager_exit();

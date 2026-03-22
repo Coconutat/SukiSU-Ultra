@@ -116,11 +116,13 @@ static inline void ksu_handle_execveat_init(struct filename **filename_ptr)
 			escape_to_root_for_init();
 		}
 #ifdef CONFIG_KSU_SUSFS
-		else if (likely(strstr(filename->name, "/app_process") == NULL &&
+		else if (likely(strstr(filename->name, "/app_process") ==
+					NULL &&
 				strstr(filename->name, "/adbd") == NULL) &&
-				!susfs_is_current_proc_umounted()) {
-					pr_info("susfs: mark no sucompat checks for pid: '%d', exec: '%s'\n", current->pid, filename->name);
-					susfs_set_current_proc_umounted();
+			 !susfs_is_current_proc_umounted()) {
+			pr_info("susfs: mark no sucompat checks for pid: '%d', exec: '%s'\n",
+				current->pid, filename->name);
+			susfs_set_current_proc_umounted();
 		}
 #endif
 	}

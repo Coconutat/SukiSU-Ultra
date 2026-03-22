@@ -10,9 +10,9 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 #include <linux/sched/signal.h> // signal_struct
 #include <linux/sched/task.h>
+#include <linux/sched/user.h> // This file does not exist in kernels below 4.10.0.
 #endif
 #include <linux/sched.h>
-#include <linux/sched/user.h>
 #include <linux/seccomp.h>
 #include <linux/slab.h>
 #include <linux/thread_info.h>
@@ -89,7 +89,7 @@ void setup_groups(struct root_profile *profile, struct cred *cred)
 static void do_disable_seccomp(void)
 {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) ||                          \
-	 defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
+     defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
 	struct task_struct *fake;
 	fake = kmalloc(sizeof(*fake), GFP_ATOMIC);
 	if (!fake) {
@@ -110,24 +110,24 @@ static void do_disable_seccomp(void)
 #endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) ||                          \
-	 defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
+     defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
 	memcpy(fake, current, sizeof(*fake));
 #endif
 	current->seccomp.mode = 0;
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0) &&                           \
-	 !defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
+     !defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
 	// put_seccomp_filter is allowed while we holding sighand
 	put_seccomp_filter(current);
 #endif
 	current->seccomp.filter = NULL;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0) ||                          \
-	 defined(KSU_OPTIONAL_SECCOMP_FILTER_CNT))
+     defined(KSU_OPTIONAL_SECCOMP_FILTER_CNT))
 	atomic_set(&current->seccomp.filter_count, 0);
 #endif
 	spin_unlock_irq(&current->sighand->siglock);
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) ||                          \
-	 defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
+     defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
 	// https://github.com/torvalds/linux/commit/bfafe5efa9754ebc991750da0bcca2a6694f3ed3#diff-45eb79a57536d8eccfc1436932f093eb5c0b60d9361c39edb46581ad313e8987R576-R577
 	fake->flags |= PF_EXITING;
@@ -184,7 +184,7 @@ void escape_with_root_profile(void)
 	cred->securebits = 0;
 
 	BUILD_BUG_ON(sizeof(profile.capabilities.effective) !=
-				 sizeof(kernel_cap_t));
+		     sizeof(kernel_cap_t));
 
 	/*
      * Mirror the kernel set*uid path: update cred->user first, then
@@ -197,36 +197,38 @@ void escape_with_root_profile(void)
      * https://github.com/torvalds/linux/blob/v5.14/kernel/sys.c
      * https://github.com/torvalds/linux/blob/v5.14/kernel/cred.c
      */
-    new_user = alloc_uid(cred->uid);
-    if (!new_user) {
-        goto out_abort_creds;
-    }
+	new_user = alloc_uid(cred->uid);
+	if (!new_user) {
+		goto out_abort_creds;
+	}
 
-    free_uid(cred->user);
-    cred->user = new_user;
+	free_uid(cred->user);
+	cred->user = new_user;
 
-    // v5.14+ added cred->ucounts, so we must refresh it after changing uid/user:
-    // https://github.com/torvalds/linux/commit/905ae01c4ae2ae3df05bb141801b1db4b7d83c61#diff-ff6060da281bd9ef3f24e17b77a9b0b5b2ed2d7208bb69b29107bee69732bd31
-    // on older kernels, per-UID process accounting lives in user_struct.
+	// v5.14+ added cred->ucounts, so we must refresh it after changing uid/user:
+	// https://github.com/torvalds/linux/commit/905ae01c4ae2ae3df05bb141801b1db4b7d83c61#diff-ff6060da281bd9ef3f24e17b77a9b0b5b2ed2d7208bb69b29107bee69732bd31
+	// on older kernels, per-UID process accounting lives in user_struct.
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0)
-    if (set_cred_ucounts(cred)) {
-        goto out_abort_creds;
-    }
+	if (set_cred_ucounts(cred)) {
+		goto out_abort_creds;
+	}
 #endif
 
 	// setup capabilities
 	// we need CAP_DAC_READ_SEARCH becuase `/data/adb/ksud` is not accessible for non root process
 	// we add it here but don't add it to cap_inhertiable, it would be dropped automaticly after exec!
 	u64 cap_for_ksud = profile.capabilities.effective | CAP_DAC_READ_SEARCH;
-	memcpy(&cred->cap_effective, &cap_for_ksud, sizeof(cred->cap_effective));
+	memcpy(&cred->cap_effective, &cap_for_ksud,
+	       sizeof(cred->cap_effective));
 	memcpy(&cred->cap_permitted, &profile.capabilities.effective,
-		   sizeof(cred->cap_permitted));
+	       sizeof(cred->cap_permitted));
 	memcpy(&cred->cap_bset, &profile.capabilities.effective,
-		   sizeof(cred->cap_bset));
+	       sizeof(cred->cap_bset));
 
 	setup_groups(&profile, cred);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0) &&                           \
+	LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
 	setup_selinux(profile.selinux_domain, current->cred);
 #else
 	setup_selinux(profile.selinux_domain, cred);
@@ -243,10 +245,10 @@ void escape_with_root_profile(void)
 #endif
 
 	setup_mount_ns(profile.namespaces);
-    return;
+	return;
 
 out_abort_creds:
-    abort_creds(cred);
+	abort_creds(cred);
 }
 
 void escape_to_root_for_init(void)
@@ -272,7 +274,7 @@ void escape_to_root_for_init(void)
 static void disable_seccomp_for_task(struct task_struct *tsk)
 {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) ||                          \
-	 defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
+     defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
 	struct task_struct *fake;
 	fake = kmalloc(sizeof(*fake), GFP_ATOMIC);
 	if (!fake) {
@@ -288,24 +290,24 @@ static void disable_seccomp_for_task(struct task_struct *tsk)
 	clear_tsk_thread_flag(tsk, TIF_SECCOMP);
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) ||                          \
-	 defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
+     defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
 	memcpy(fake, tsk, sizeof(*fake));
 #endif
 	tsk->seccomp.mode = 0;
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0) &&                           \
-	 !defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
+     !defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
 	// put_seccomp_filter is allowed while we holding sighand
 	put_seccomp_filter(tsk);
 #endif
 	tsk->seccomp.filter = NULL;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0) ||                          \
-	 defined(KSU_OPTIONAL_SECCOMP_FILTER_CNT))
+     defined(KSU_OPTIONAL_SECCOMP_FILTER_CNT))
 	atomic_set(&tsk->seccomp.filter_count, 0);
 #endif
 	spin_unlock_irq(&tsk->sighand->siglock);
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) ||                          \
-	 defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
+     defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
 	// https://github.com/torvalds/linux/commit/bfafe5efa9754ebc991750da0bcca2a6694f3ed3#diff-45eb79a57536d8eccfc1436932f093eb5c0b60d9361c39edb46581ad313e8987R576-R577
 	fake->flags |= PF_EXITING;
@@ -365,7 +367,7 @@ void escape_to_root_for_cmd_su(uid_t target_uid, pid_t target_pid)
 	if (!target_task) {
 		rcu_read_unlock();
 		pr_err("cmd_su: target task not found for PID: %d\n",
-			   target_pid);
+		       target_pid);
 		return;
 	}
 	get_task_struct(target_task);
@@ -381,7 +383,7 @@ void escape_to_root_for_cmd_su(uid_t target_uid, pid_t target_pid)
 	newcreds = prepare_kernel_cred(target_task);
 	if (newcreds == NULL) {
 		pr_err("cmd_su: failed to allocate new cred for PID: %d\n",
-			   target_pid);
+		       target_pid);
 		put_task_struct(target_task);
 		return;
 	}
@@ -399,18 +401,19 @@ void escape_to_root_for_cmd_su(uid_t target_uid, pid_t target_pid)
 	newcreds->egid.val = profile.gid;
 	newcreds->securebits = 0;
 
-	u64 cap_for_cmd_su = profile.capabilities.effective | CAP_DAC_READ_SEARCH |
-						 CAP_SETUID | CAP_SETGID;
+	u64 cap_for_cmd_su = profile.capabilities.effective |
+			     CAP_DAC_READ_SEARCH | CAP_SETUID | CAP_SETGID;
 	memcpy(&newcreds->cap_effective, &cap_for_cmd_su,
-		   sizeof(newcreds->cap_effective));
+	       sizeof(newcreds->cap_effective));
 	memcpy(&newcreds->cap_permitted, &profile.capabilities.effective,
-		   sizeof(newcreds->cap_permitted));
+	       sizeof(newcreds->cap_permitted));
 	memcpy(&newcreds->cap_bset, &profile.capabilities.effective,
-		   sizeof(newcreds->cap_bset));
+	       sizeof(newcreds->cap_bset));
 
 	setup_groups(&profile, newcreds);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0) &&                           \
+	LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
 	setup_selinux(profile.selinux_domain, current->newcreds);
 #else
 	setup_selinux(profile.selinux_domain, newcreds);
