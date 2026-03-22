@@ -1099,6 +1099,11 @@ bool ksu_genfscon(struct policydb *db, const char *fs_name, const char *path,
 	return add_genfscon(db, fs_name, path, ctx);
 }
 
+#if LINUX_VERSION_CODE >=                                                      \
+	KERNEL_VERSION(5, 10, 0) // old devices doesn't need it
+// for rules.c handle_sepolicy's upstream way
+// So, this is only for 5.10+
+
 // https://github.com/torvalds/linux/commit/581646c3fb98494009671f6d347ea125bc0e663a
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 #define CONST_IF_6_10 const
@@ -1566,3 +1571,4 @@ out:
 	kfree(new_pol);
 	return NULL;
 }
+#endif
